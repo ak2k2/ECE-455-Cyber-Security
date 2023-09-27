@@ -1,1 +1,26 @@
 ## Place your answers here.
+Part 1.
+
+Exercise 1.
+$ make check-bugs -> SUCCESS.
+
+Exercise 2.
+$ make check-crash -> SUCCESS for exploit-2a.py and exploit-2b.py.
+The overflows triggered by the exploit scripts are commented inside their build_exploit() functions.
+
+Part 2.
+Vulnerabilities that the modified aleph1 exploit in shellcode.C will work on:
+
+[http.c:66]: Stack-based overflow from reading a socket. Success depends on controlling the return address.
+[http.c:22]: Stack-based overflow if name exceeds 1023 characters. The shellcode should fit, and the return address must be controllable.
+[zookd.c:65]: Similar to the first vulnerability, where data is read from an insecure socket.
+[http.c:282]: Stack-based overflow if the length of name + pn exceeds 1023 characters. Success depends on fitting the shellcode and controlling the return address.
+
+Harder vulnerabilities:
+
+[http.c:312]: Overflow involving environment variables, making exploitation more intricate.
+The exploit's success also depends on factors like stack protections and the program's memory layout. Testing each vulnerability will provide a definitive answer.
+
+
+
+
