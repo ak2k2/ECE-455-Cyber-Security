@@ -1,0 +1,38 @@
+#
+# [file:#lines]
+# desc
+#
+
+[http.c:66]
+Within the http_read_line function, if the data read from the socket is not properly null-terminated, or for some other reason exceeds 8191 chars, an overflow will occur.
+
+    <static char buf[8192];
+    ...
+    if (http_read_line(fd, buf, sizeof(buf)) < 0);>
+
+[http.c:22]
+If `name` exceeds 1023 characters (1 null terminator) a buffer overflow may occur.
+
+    <char pn[1024];
+    snprintf(pn, 1024, "/tmp/%s", name);>
+
+[http.c:312]
+By maliciously contriving a PATH_INFO environment variable or pn variable, a string that exceeds the buffer size may be passed to snprintf, causing a buffer overflow.
+
+    <snprintf(buf, 1024, "%s%s", pn, getenv("PATH_INFO"));>
+
+[zookd.c:65]
+http_request_line reads from a potentially insecure socket, and writes to a fixed-size buffer.
+
+    <static char env[8192];
+    char reqpath[2048];
+    ...
+    if ((errmsg = http_request_line(fd, reqpath, env, &env_len)))>
+
+
+[http.c:282]
+if length of name + pn exceeds 1023 characters, strcat will not null-terminate the string, causing a buffer overflow.
+
+    <char pn[1024];
+    ...
+    strcat(pn, name);>
