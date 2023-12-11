@@ -12,6 +12,14 @@ from flask_login import (
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from helpers import decrypt_message, encrypt_message, get_config
+
+CONFIG = get_config()
+
+# Access and encode the encryption key to bytes
+FERNET_KEY = CONFIG["encryption"]["key"].encode()
+
+
 # Initialize Flask
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -39,12 +47,37 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    def encrypt_and_store_images(self, image1, image2, image3):
+        global FERNET_KEY
+
+        if image1 is not None:
+            self.image_1 = encrypt_message(image1, FERNET_KEY)
+        if image2 is not None:
+            self.image_2 = encrypt_message(image2, FERNET_KEY)
+        if image3 is not None:
+            self.image_3 = encrypt_message(image3, FERNET_KEY)
+
+    def get_decrypted_images(self):
+        global FERNET_KEY
+        return {
+            "image_1": decrypt_message(self.image_1, FERNET_KEY)
+            if self.image_1
+            else None,
+            "image_2": decrypt_message(self.image_2, FERNET_KEY)
+            if self.image_2
+            else None,
+            "image_3": decrypt_message(self.image_3, FERNET_KEY)
+            if self.image_3
+            else None,
+        }
+
 
 # Login manager
 login_manager = LoginManager()
 login_manager.init_app(app)
 
 
+# Cryptography
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -101,14 +134,14 @@ def login():
 def capture():
     if request.method == "POST":
         image_num = request.form.get("image_num")
-        image = request.files["image"]
+        image = request.files["image"].read() if "image" in request.files else None
 
         if image_num == "1":
-            current_user.image_1 = image.read()
+            current_user.encrypt_and_store_images(image, None, None)
         elif image_num == "2":
-            current_user.image_2 = image.read()
+            current_user.encrypt_and_store_images(None, image, None)
         elif image_num == "3":
-            current_user.image_3 = image.read()
+            current_user.encrypt_and_store_images(None, None, image)
 
         db.session.commit()
         return jsonify({"status": "success", "image_num": image_num})

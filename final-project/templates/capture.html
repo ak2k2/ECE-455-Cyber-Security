@@ -4,6 +4,25 @@
 <head>
     <title>Capture Image</title>
     <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+
+        #videoContainer {
+            display: inline-block;
+            margin-top: 20px;
+            border: 5px solid #4CAF50;
+            border-radius: 15px;
+            box-shadow: 0 9px #999;
+            background-color: #fff;
+            /* To match the border color */
+        }
+
+        video {
+            border-radius: 10px;
+        }
+
         #flash {
             display: none;
             position: fixed;
@@ -16,13 +35,41 @@
         }
 
         #caption {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            margin-top: 10px;
             font-size: 24px;
-            color: #000;
-            z-index: 20;
+            color: #4CAF50;
+        }
+
+        #red {
+            margin-top: 10px;
+            font-size: 24px;
+            color: #4CAF50;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            outline: none;
+            color: #fff;
+            background-color: #4CAF50;
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 9px #999;
+        }
+
+        .button:hover {
+            background-color: #3e8e41
+        }
+
+        .button:active {
+            background-color: #3e8e41;
+            box-shadow: 0 5px #666;
+            transform: translateY(4px);
         }
     </style>
     <script>
@@ -90,7 +137,7 @@
 
         function showFinalMessage() {
             let caption = document.getElementById('caption');
-            // Use the passed username here
+            // Use the passed username hereÍ
             caption.innerText = `Thank you, ${'{{ username }}'}. We saved your data. Your face will be safe with us.`;
             // Hide the capture button
             document.getElementById('captureButton').style.display = 'none';
@@ -101,11 +148,13 @@
 </head>
 
 <body>
-    <div id="flash"></div>
+    <div id="videoContainer">
+        <video id="video" width="640" height="480" autoplay></video>
+    </div>
     <div id="caption"></div>
-    <video id="video" width="640" height="480" autoplay></video>
-    <button id="captureButton" onclick="captureImage()" disabled>Capture</button>
+    <div id="flash"></div>
     <canvas id="canvas" width="640" height="480" style="display: none;"></canvas>
+    <button id="captureButton" onclick="captureImage()" disabled class="button">Capture</button>
 </body>
 
 </html>
