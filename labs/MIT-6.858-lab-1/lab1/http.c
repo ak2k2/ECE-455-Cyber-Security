@@ -15,12 +15,14 @@
 #include <string.h>
 #include <unistd.h>
 
-void touch(const char *name) {
+void touch(const char *name)
+{
     if (access("/tmp/grading", F_OK) < 0)
         return;
 
     char pn[1024];
-    snprintf(pn, 1024, "/tmp/%s", name);
+    snprintf(pn, sizeof(pn) - 1, "/tmp/%s", name);
+    pn[sizeof(pn) - 1] = '\0'; // Ensure null termination.
 
     int fd = open(pn, O_RDWR | O_CREAT | O_NOFOLLOW, 0666);
     if (fd >= 0)
@@ -39,7 +41,7 @@ int http_read_line(int fd, char *buf, size_t size)
 
         if (buf[i] == '\r')
         {
-            buf[i] = '\0';      /* skip */
+            buf[i] = '\0'; /* skip */
             continue;
         }
 
@@ -63,14 +65,16 @@ int http_read_line(int fd, char *buf, size_t size)
 
 const char *http_request_line(int fd, char *reqpath, char *env, size_t *env_len)
 {
-    static char buf[8192];      /* static variables are not on the stack */
+    static char buf[8192]; /* static variables are not on the stack */
     char *sp1, *sp2, *qp, *envp = env;
 
     /* For lab 2: don't remove this line. */
     touch("http_request_line");
 
-    if (http_read_line(fd, buf, sizeof(buf)) < 0)
-        return "Socket IO error";
+    // MODIFIED
+    if (http_read_line(fd, buf, sizeof(buf) - 1) < 0)
+        ;
+    buf[sizeof(buf) - 1] = '\0'; // Ensure null termination.
 
     /* Parse request like "GET /foo.html HTTP/1.0" */
     sp1 = strchr(buf, ' ');
@@ -115,7 +119,7 @@ const char *http_request_line(int fd, char *reqpath, char *env, size_t *env_len)
 
 const char *http_request_headers(int fd)
 {
-    static char buf[8192];      /* static variables are not on the stack */
+    static char buf[8192]; /* static variables are not on the stack */
     int i;
     char value[512];
     char envvar[512];
@@ -129,7 +133,7 @@ const char *http_request_headers(int fd)
         if (http_read_line(fd, buf, sizeof(buf)) < 0)
             return "Socket IO error";
 
-        if (buf[0] == '\0')     /* end of headers */
+        if (buf[0] == '\0') /* end of headers */
             break;
 
         /* Parse things like "Cookie: foo bar" */
@@ -149,7 +153,8 @@ const char *http_request_headers(int fd)
         *colon = '\0';
 
         /* Set the header name to uppercase and replace hyphens with underscores */
-        for (i = 0; i < strlen(buf); i++) {
+        for (i = 0; i < strlen(buf); i++)
+        {
             buf[i] = toupper(buf[i]);
             if (buf[i] == '-')
                 buf[i] = '_';
@@ -161,10 +166,13 @@ const char *http_request_headers(int fd)
         /* Store header in env. variable for application code */
         /* Some special headers don't use the HTTP_ prefix. */
         if (strcmp(buf, "CONTENT_TYPE") != 0 &&
-            strcmp(buf, "CONTENT_LENGTH") != 0) {
+            strcmp(buf, "CONTENT_LENGTH") != 0)
+        {
             sprintf(envvar, "HTTP_%s", buf);
             setenv(envvar, value, 1);
-        } else {
+        }
+        else
+        {
             setenv(buf, value, 1);
         }
     }
@@ -198,16 +206,20 @@ void split_path(char *pn)
     struct stat st;
     char *slash = NULL;
 
-    for (;;) {
+    for (;;)
+    {
         /*
          * Stop searching if we find a file at a prefix,
          * or if we get an unexpected error.
          */
         int r = stat(pn, &st);
-        if (r < 0) {
+        if (r < 0)
+        {
             if (errno != ENOTDIR && errno != ENOENT)
                 break;
-        } else {
+        }
+        else
+        {
             if (S_ISREG(st.st_mode))
                 break;
         }
@@ -220,20 +232,24 @@ void split_path(char *pn)
         else
             slash = pn + strlen(pn);
 
-        while (--slash > pn) {
-            if (*slash == '/') {
+        while (--slash > pn)
+        {
+            if (*slash == '/')
+            {
                 *slash = '\0';
                 break;
             }
         }
 
-        if (slash == pn) {
+        if (slash == pn)
+        {
             slash = NULL;
             break;
         }
     }
 
-    if (slash) {
+    if (slash)
+    {
         *slash = '/';
         setenv("PATH_INFO", slash, 1);
         *slash = '\0';
@@ -246,8 +262,7 @@ void split_path(char *pn)
 static int cgi_uid = -1;
 static int cgi_gid = -1;
 
-void
-http_set_executable_uid_gid(int uid, int gid)
+void http_set_executable_uid_gid(int uid, int gid)
 {
     cgi_uid = uid;
     cgi_gid = gid;
@@ -262,7 +277,8 @@ valid_cgi_script(struct stat *st)
     if (!(st->st_mode & S_IXUSR))
         return 0;
 
-    if (cgi_uid >= 0 && cgi_gid >= 0) {
+    if (cgi_uid >= 0 && cgi_gid >= 0)
+    {
         if (st->st_uid != cgi_uid || st->st_gid != cgi_gid)
             return 0;
     }
@@ -306,13 +322,26 @@ void http_serve_file(int fd, const char *pn)
     int filefd;
     off_t len = 0;
 
-    if (getenv("PATH_INFO")) {
+
+    if (getenv("PATH_INFO"))
+    {
         /* only attempt PATH_INFO on dynamic resources */
         char buf[1024];
         snprintf(buf, 1024, "%s%s", pn, getenv("PATH_INFO"));
         http_serve_none(fd, buf);
         return;
     }
+
+    size_t path_info_length = getenv("PATH_INFO") ? strlen(getenv("PATH_INFO")) : 0;
+    if (path_info_length + strlen(pn) + 1 > sizeof(buf))
+    {
+        // Handle error or truncate PATH_INFO
+    }
+    else
+    {
+        snprintf(buf, sizeof(buf) - 1, "%s%s", pn, getenv("PATH_INFO"));
+    }
+    buf[sizeof(buf) - 1] = '\0'; // Ensure null termination.
 
     if ((filefd = open(pn, O_RDONLY)) < 0)
         return http_err(fd, 500, "open %s: %s", pn, strerror(errno));
@@ -340,29 +369,34 @@ void http_serve_file(int fd, const char *pn)
     close(filefd);
 }
 
-void dir_join(char *dst, const char *dirname, const char *filename) {
+void dir_join(char *dst, const char *dirname, const char *filename)
+{
     strcpy(dst, dirname);
     if (dst[strlen(dst) - 1] != '/')
         strcat(dst, "/");
     strcat(dst, filename);
 }
 
-void http_serve_directory(int fd, const char *pn) {
+void http_serve_directory(int fd, const char *pn)
+{
     /* for directories, use index.html or similar in that directory */
-    static const char * const indices[] = {"index.html", "index.php", "index.cgi", NULL};
+    static const char *const indices[] = {"index.html", "index.php", "index.cgi", NULL};
     char name[1024];
     struct stat st;
     int i;
 
-    for (i = 0; indices[i]; i++) {
+    for (i = 0; indices[i]; i++)
+    {
         dir_join(name, pn, indices[i]);
-        if (stat(name, &st) == 0 && S_ISREG(st.st_mode)) {
+        if (stat(name, &st) == 0 && S_ISREG(st.st_mode))
+        {
             dir_join(name, getenv("SCRIPT_NAME"), indices[i]);
             break;
         }
     }
 
-    if (indices[i] == NULL) {
+    if (indices[i] == NULL)
+    {
         http_err(fd, 403, "No index file in %s", pn);
         return;
     }
@@ -376,7 +410,8 @@ void http_serve_executable(int fd, const char *pn)
     int pipefd[2], statusprinted = 0, ret, headerslen = 4096;
 
     pipe(pipefd);
-    switch (fork()) {
+    switch (fork())
+    {
     case -1:
         http_err(fd, 500, "fork: %s", strerror(errno));
         return;
@@ -393,8 +428,10 @@ void http_serve_executable(int fd, const char *pn)
         exit(1);
     default:
         close(pipefd[1]);
-        while (1) {
-            if (http_read_line(pipefd[0], buf, 1024) < 0) {
+        while (1)
+        {
+            if (http_read_line(pipefd[0], buf, 1024) < 0)
+            {
                 http_err(fd, 500, "Premature end of script headers");
                 close(pipefd[0]);
                 return;
@@ -403,16 +440,22 @@ void http_serve_executable(int fd, const char *pn)
             if (!*buf)
                 break;
 
-            if (!statusprinted && strncasecmp("Status: ", buf, 8) == 0) {
+            if (!statusprinted && strncasecmp("Status: ", buf, 8) == 0)
+            {
                 fdprintf(fd, "HTTP/1.0 %s\r\n%s", buf + 8, headers);
                 statusprinted = 1;
-            } else if (statusprinted) {
+            }
+            else if (statusprinted)
+            {
                 fdprintf(fd, "%s\r\n", buf);
-            } else {
+            }
+            else
+            {
                 ret = snprintf(pheaders, headerslen, "%s\r\n", buf);
                 pheaders += ret;
                 headerslen -= ret;
-                if (headerslen == 0) {
+                if (headerslen == 0)
+                {
                     http_err(fd, 500, "Too many script headers");
                     close(pipefd[0]);
                     return;
@@ -425,7 +468,8 @@ void http_serve_executable(int fd, const char *pn)
         else
             fdprintf(fd, "HTTP/1.0 200 OK\r\n%s\r\n", headers);
 
-        while ((ret = read(pipefd[0], buf, 1024)) > 0) {
+        while ((ret = read(pipefd[0], buf, 1024)) > 0)
+        {
             write(fd, buf, ret);
         }
 
@@ -475,7 +519,7 @@ void env_deserialize(const char *env, size_t len)
             break;
         *p++ = 0;
         setenv(env, p, 1);
-        p += strlen(p)+1;
+        p += strlen(p) + 1;
         len -= (p - env);
         env = p;
     }
@@ -538,6 +582,6 @@ again:
     if (r < 0)
         warn("recvmsg");
     else
-        *fd = *((int*)CMSG_DATA(cmsg));
+        *fd = *((int *)CMSG_DATA(cmsg));
     return r;
 }

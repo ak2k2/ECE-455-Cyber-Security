@@ -22,5 +22,45 @@ Harder vulnerabilities:
 The exploit's success also depends on factors like stack protections and the program's memory layout. Testing each vulnerability will provide a definitive answer.
 
 
+part 4. 
 
+Exercise 5.
 
+1. Insecure Access Control
+
+   Various parts of the code, there are checks to determine whether a user has access to certain resources. However, the code does not implement proper access control mechanisms to restrict unauthorized access to resources. Without proper access controls, sensitive files or directories may be exposed.
+
+   Relevant Lines of Code:
+   ```c
+   // Example in http.c:66
+   if (access("/tmp/grading", F_OK) < 0)
+       return;
+   ```
+
+2. Lack of Input Sanitization
+
+   Parses and uses data from HTTP requests and environment variables without adequate input validation and sanitization. This can potentially lead to security vulnerabilities, such as SQL injection, command injection, or other forms of injection attacks if user-provided data is not properly sanitized before being used.
+
+   Relevant Lines of Code:
+   ```c
+   // Example in http.c:312
+   snprintf(buf, 1024, "%s%s", pn, getenv("PATH_INFO"));
+   ```
+
+3. Insecure Environment Variables
+
+   Sets environment variables based on HTTP headers and request data. However, it doesn't validate or sanitize these values. If an attacker can manipulate HTTP headers or request data, they may set malicious values for these environment variables, potentially leading to security issues.
+
+   Relevant Lines of Code:
+   ```c
+   // Example in http.c:39
+   envp += sprintf(envp, "REQUEST_METHOD=%s", buf) + 1;
+   envp += sprintf(envp, "SERVER_PROTOCOL=%s", sp2) + 1;
+   ```
+
+Exercise 6.
+
+[http.c:66] Adjusted the http_read_line function to ensure proper null termination of the buffer.
+[http.c:22] Modified snprintf to prevent buffer overflow and added null termination.
+TODO:
+[http.c:312] Add checks to ensure the combined length of pn and PATH_INFO doesn't exceed the buffer size.
