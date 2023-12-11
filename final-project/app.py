@@ -1,4 +1,6 @@
+import io
 import os
+import pickle
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import (
@@ -10,8 +12,10 @@ from flask_login import (
     logout_user,
 )
 from flask_sqlalchemy import SQLAlchemy
+from PIL import Image
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from embedding import get_embedding_from_face
 from helpers import decrypt_message, encrypt_message, get_config
 
 CONFIG = get_config()
@@ -36,6 +40,23 @@ class User(UserMixin, db.Model):
     image_1 = db.Column(db.LargeBinary)
     image_2 = db.Column(db.LargeBinary)
     image_3 = db.Column(db.LargeBinary)
+    embedding = db.Column(db.LargeBinary)  # New field for embedding
+
+    def encrypt_and_store_embedding(self, embedding):
+        global FERNET_KEY
+
+        if embedding is not None:
+            # Serialize the numpy array and then encrypt it
+            pickled_embedding = pickle.dumps(embedding)
+            self.embedding = encrypt_message(pickled_embedding, FERNET_KEY)
+
+    def get_decrypted_embedding(self):
+        global FERNET_KEY
+        if self.embedding:
+            decrypted_embedding = decrypt_message(self.embedding, FERNET_KEY)
+            return pickle.loads(decrypted_embedding)
+        else:
+            return None
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -130,17 +151,23 @@ def login():
 def capture():
     if request.method == "POST":
         image_num = request.form.get("image_num")
-        image = request.files["image"].read() if "image" in request.files else None
+        image_file = request.files["image"] if "image" in request.files else None
 
-        if image_num == "1":
-            current_user.encrypt_and_store_images(image, None, None)
-        elif image_num == "2":
-            current_user.encrypt_and_store_images(None, image, None)
-        elif image_num == "3":
-            current_user.encrypt_and_store_images(None, None, image)
+        if image_file:
+            image_bytes = image_file.read()
+            image = Image.open(io.BytesIO(image_bytes))
 
-        db.session.commit()
-        return jsonify({"status": "success", "image_num": image_num})
+            if image_num == "1":
+                embedding = get_embedding_from_face(image)
+                current_user.encrypt_and_store_images(image_bytes, None, None)
+                current_user.encrypt_and_store_embedding(embedding)
+            elif image_num == "2":
+                current_user.encrypt_and_store_images(None, image_bytes, None)
+            elif image_num == "3":
+                current_user.encrypt_and_store_images(None, None, image_bytes)
+
+            db.session.commit()
+            return jsonify({"status": "success", "image_num": image_num})
 
     return render_template("capture.html", username=current_user.username)
 

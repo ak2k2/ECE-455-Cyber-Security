@@ -14,65 +14,6 @@ from helpers import decrypt_message
 # Initialize MTCNN
 detector = MTCNN()
 
-# Load the YAML file
-with open("config.yaml", "r") as file:
-    config = yaml.safe_load(file)
-
-# Access and encode the encryption key to bytes
-FERNET_KEY = config["encryption"]["key"].encode()
-
-
-def get_face_from_db(username: str):
-    images = []
-    # Define the path to the database
-    db_path = "user/users.db"
-
-    # Connect to the SQLite database
-    conn = sqlite3.connect(db_path)
-
-    # Load the user table into a pandas DataFrame
-    USERS = pd.read_sql_query("SELECT * FROM user", conn)
-
-    # print a list of all the users
-    print(f"Registered Users: {list(USERS['username'])}")
-
-    # Close the database connection
-    conn.close()
-
-    # Filter the DataFrame for the specific user
-    user_data = USERS[USERS["username"] == username]
-
-    if user_data.empty:
-        print("User not found.")
-        return
-
-    for n in [1, 2, 3]:
-        image_column = f"image_{n}"
-        if (
-            image_column in user_data.columns
-            and user_data.iloc[0][image_column] is not None
-        ):
-            # Decrypt the image data
-            encrypted_image = user_data.iloc[0][image_column]
-            decrypted_image = decrypt_message(encrypted_image, FERNET_KEY)
-
-            # Convert decrypted data to an image
-            image_bytes = io.BytesIO(decrypted_image)
-            image = Image.open(image_bytes)
-
-            # # Display the image
-            # plt.imshow(image)
-            # plt.axis("off")
-            # plt.title(f"{username}: Image {n}")
-            # plt.show()
-
-            images.append(image)
-
-        else:
-            print(f"Image {n} not found.")
-
-    return images
-
 
 def align_and_crop_face(image, face_height_multiplier=2.0):
     # Convert the PIL Image to a NumPy array
@@ -138,16 +79,3 @@ def align_and_crop_face(image, face_height_multiplier=2.0):
 
     # Return None if no faces are detected
     return None
-
-
-def get_face_by_username(username: str):
-    images = get_face_from_db(username)
-    if images is None:
-        print("No images found.")
-        return
-    images = [align_and_crop_face(image) for image in images]
-    for image in images:
-        plt.imshow(image)
-        plt.axis("off")
-        plt.show()
-    return images
