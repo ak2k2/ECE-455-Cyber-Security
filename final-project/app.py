@@ -15,17 +15,13 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from helpers import decrypt_message, encrypt_message, get_config
 
 CONFIG = get_config()
-
-# Access and encode the encryption key to bytes
 FERNET_KEY = CONFIG["encryption"]["key"].encode()
 
 
-# Initialize Flask
+# Initialize Flask and SQLAlchemy
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
 db_dir = os.path.join(basedir, "user")
-
-# Initialize SQLAlchemy
 db_uri = "sqlite:///" + os.path.join(db_dir, "users.db")
 app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
 app.config["SECRET_KEY"] = "your_secret_key"
@@ -77,7 +73,7 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 
-# Cryptography
+# User loader
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
