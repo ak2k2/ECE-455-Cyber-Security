@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, flash, redirect, render_template, request, url_for
+from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import (
     LoginManager,
     UserMixin,
@@ -12,24 +12,24 @@ from flask_login import (
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import check_password_hash, generate_password_hash
 
-# Initialize Flask app
+# Initialize Flask
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
 db_dir = os.path.join(basedir, "user")
+
+# Initialize SQLAlchemy
 db_uri = "sqlite:///" + os.path.join(db_dir, "users.db")
 app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
 app.config["SECRET_KEY"] = "your_secret_key"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-# Initialize the SQLAlchemy object
 db = SQLAlchemy(app)
 
 
-# Define User model
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
+    image_data = db.Column(db.LargeBinary)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -38,7 +38,7 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
 
-# Initialize Flask-Login
+# Login manager
 login_manager = LoginManager()
 login_manager.init_app(app)
 
@@ -92,6 +92,18 @@ def login():
         flash("Invalid username or password.")
 
     return render_template("login.html")
+
+
+@app.route("/capture", methods=["GET", "POST"])
+@login_required
+def capture():
+    if request.method == "POST":
+        image = request.files["image"]
+        current_user.image_data = image.read()
+        db.session.commit()
+        return jsonify({"status": "success"})
+
+    return render_template("capture.html")
 
 
 # Protected dashboard route

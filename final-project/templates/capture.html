@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Capture Image</title>
+    <script>
+        function startCamera() {
+            navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                .then(stream => {
+                    document.getElementById('video').srcObject = stream;
+                })
+                .catch(console.error);
+        }
+
+        function captureImage() {
+            let video = document.getElementById('video');
+            let canvas = document.getElementById('canvas');
+            let context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        }
+
+        function sendImage() {
+            let canvas = document.getElementById('canvas');
+            canvas.toBlob(blob => {
+                let formData = new FormData();
+                formData.append('image', blob);
+
+                fetch('/capture', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => console.log(data))
+                    .catch(console.error);
+            }, 'image/jpeg');
+        }
+
+        window.onload = startCamera;
+    </script>
+</head>
+
+<body>
+    <video id="video" width="640" height="480" autoplay></video>
+    <button onclick="captureImage()">Capture</button>
+    <canvas id="canvas" width="640" height="480" style="display: none;"></canvas>
+    <button onclick="sendImage()">Send Image</button>
+</body>
+
+</html>
