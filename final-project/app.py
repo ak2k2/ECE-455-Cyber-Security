@@ -171,10 +171,11 @@ def capture():
 
             db.session.commit()
 
-            # Return a success status after processing each image
-            return jsonify({"status": "success", "image_num": image_num})
-        else:
-            return jsonify({"status": "error", "message": "No image provided"})
+            # Redirect to 2FA page after capturing the last image
+            if int(image_num) == max_images:
+                return redirect(url_for("process_2fa_login"))
+            else:
+                return jsonify({"status": "success", "image_num": image_num})
 
     return render_template("capture.html", username=current_user.username)
 

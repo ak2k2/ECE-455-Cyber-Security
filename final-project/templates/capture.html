@@ -101,7 +101,7 @@
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             sendImage(captureCount + 1); // Send current image number for capturing
         }
-
+        
         function sendImage(imageNumber) {
             let canvas = document.getElementById('canvas');
             canvas.toBlob(blob => {
@@ -113,14 +113,22 @@
                     method: 'POST',
                     body: formData
                 })
-                    .then(response => response.json())
+                    .then(response => {
+                        if (response.redirected) {
+                            window.location.href = response.url; // Redirect to the new URL if the response is a redirection
+                        } else {
+                            return response.json();
+                        }
+                    })
                     .then(data => {
-                        if (data.status === "success") {
+                        if (data && data.status === "success") {
                             captureCount++;
                             if (captureCount < 3) {
                                 showFlash(`Captured image ${captureCount}. Ready for next.`);
                             } else {
                                 showFinalMessage();
+                                // Disable the capture button to prevent more captures
+                                document.getElementById('captureButton').disabled = true;
                             }
                         } else {
                             showFlash("Error processing image.");
@@ -132,6 +140,7 @@
                     });
             }, 'image/jpeg');
         }
+
 
         function showFlash(message) {
             let flash = document.getElementById('flash');
