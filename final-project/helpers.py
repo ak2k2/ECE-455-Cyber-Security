@@ -6,6 +6,7 @@ def get_config(path="config.yaml"):
     # Load the YAML file
     with open(path, "r") as file:
         config = yaml.safe_load(file)
+    return config
 
 
 def encrypt_message(message, key):
