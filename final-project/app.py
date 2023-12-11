@@ -29,7 +29,9 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
-    image_data = db.Column(db.LargeBinary)
+    image_1 = db.Column(db.LargeBinary)
+    image_2 = db.Column(db.LargeBinary)
+    image_3 = db.Column(db.LargeBinary)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -98,12 +100,20 @@ def login():
 @login_required
 def capture():
     if request.method == "POST":
+        image_num = request.form.get("image_num")
         image = request.files["image"]
-        current_user.image_data = image.read()
-        db.session.commit()
-        return jsonify({"status": "success"})
 
-    return render_template("capture.html")
+        if image_num == "1":
+            current_user.image_1 = image.read()
+        elif image_num == "2":
+            current_user.image_2 = image.read()
+        elif image_num == "3":
+            current_user.image_3 = image.read()
+
+        db.session.commit()
+        return jsonify({"status": "success", "image_num": image_num})
+
+    return render_template("capture.html", username=current_user.username)
 
 
 # Protected dashboard route

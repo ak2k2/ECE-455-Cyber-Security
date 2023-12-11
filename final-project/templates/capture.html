@@ -3,20 +3,57 @@
 
 <head>
     <title>Capture Image</title>
+    <style>
+        #flash {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.7);
+            z-index: 10;
+        }
+
+        #caption {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: #000;
+            z-index: 20;
+        }
+    </style>
     <script>
+        let captureCount = 0;
+
         function startCamera() {
+            const video = document.getElementById('video');
+            const captureButton = document.getElementById('captureButton');
+
             navigator.mediaDevices.getUserMedia({ video: true, audio: false })
                 .then(stream => {
-                    document.getElementById('video').srcObject = stream;
+                    video.srcObject = stream;
+                    captureButton.disabled = false;
                 })
-                .catch(console.error);
+                .catch(error => {
+                    console.error(error);
+                    captureButton.disabled = true;
+                });
         }
 
         function captureImage() {
+            if (captureCount >= 3) {
+                return;
+            }
+
+            showFlash(`Capturing image_${captureCount + 1}`);
             let video = document.getElementById('video');
             let canvas = document.getElementById('canvas');
             let context = canvas.getContext('2d');
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            sendImage();
         }
 
         function sendImage() {
@@ -24,15 +61,39 @@
             canvas.toBlob(blob => {
                 let formData = new FormData();
                 formData.append('image', blob);
+                formData.append('image_num', ++captureCount);
 
                 fetch('/capture', {
                     method: 'POST',
                     body: formData
                 })
                     .then(response => response.json())
-                    .then(data => console.log(data))
+                    .then(data => {
+                        if (captureCount >= 3) {
+                            showFinalMessage();
+                        }
+                    })
                     .catch(console.error);
             }, 'image/jpeg');
+        }
+
+        function showFlash(message) {
+            let flash = document.getElementById('flash');
+            let caption = document.getElementById('caption');
+
+            caption.innerText = message;
+            flash.style.display = 'block';
+            setTimeout(() => {
+                flash.style.display = 'none';
+            }, 500);
+        }
+
+        function showFinalMessage() {
+            let caption = document.getElementById('caption');
+            // Use the passed username here
+            caption.innerText = `Thank you, ${'{{ username }}'}. We saved your data. Your face will be safe with us.`;
+            // Hide the capture button
+            document.getElementById('captureButton').style.display = 'none';
         }
 
         window.onload = startCamera;
@@ -40,10 +101,11 @@
 </head>
 
 <body>
+    <div id="flash"></div>
+    <div id="caption"></div>
     <video id="video" width="640" height="480" autoplay></video>
-    <button onclick="captureImage()">Capture</button>
+    <button id="captureButton" onclick="captureImage()" disabled>Capture</button>
     <canvas id="canvas" width="640" height="480" style="display: none;"></canvas>
-    <button onclick="sendImage()">Send Image</button>
 </body>
 
 </html>
