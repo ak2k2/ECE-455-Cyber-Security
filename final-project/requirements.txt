@@ -64,3 +64,10 @@ typing_extensions==4.9.0
 tzdata==2023.3
 wcwidth==0.2.12
 Werkzeug==3.0.1
+
+
+id  username                 password_hash                                image_3                                        embedding                                      is_authenticated
+1   am     scrypt:32768:8:1$aizhH1tzhmAIV3Br$3e83731a9a35...  ...  b'gAAAAABldtvRP-jz8OtkcwdVBjQryn45QrU5bHhrLeYD...  b'gAAAAABldtvPYli0i9Wkra_pvmILObUfMmFiZLeKS...     True
+2   aryan  scrypt:32768:8:1$1tcnYdBxmjRGgTb2$98076e9975a9...  ...  b'gAAAAABlduJbTXwH6dJaluJeBPE6sfzLy1mhy7rhMd_r...  b'gAAAAABlduJZcpiAxS7ihJ2-1DjRIng_XdOfMwcQa...     True
+4   Alice  scrypt:32768:8:1$GGm8Mh1nUcVhyfxd$18cf398f7683...  ...  b'gAAAAABlduLdPk0lzpTqFwCGYiHddvS2DbbTu4nJzGJ8...  b'gAAAAABlduLZDAquybI-tYD5Leyqfvh1M0GQ73df...      False
+5   bob    scrypt:32768:8:1$2918Jeq419j8RSZW$e7e760c1e1a4...  ...  b'gAAAAABlduRD60xiy8Y_CxG-WT4LialCeNpq1xsM_m7c...  b'gAAAAABlduRAYjhkdnPoGVtXSXisUZHB3pb3emQQFh3b...  True

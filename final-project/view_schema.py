@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 import yaml
 from PIL import Image
+from sklearn.manifold import MDS
+from sklearn.metrics.pairwise import cosine_similarity
 
 from embedding import get_embedding_from_face, verify_face
 from helpers import decrypt_message
@@ -97,10 +99,40 @@ def validate_two_factor_login(username: str, test_image):
         return False
 
 
-# # read in misc/aryan.png as bytes
-# with open("misc/mallory.png", "rb") as file:
-#     attempted_face = file.read()
-# attempted_face_bytes = io.BytesIO(attempted_face)
-# attempted_face = Image.open(attempted_face_bytes).convert("RGB")
+def plot_confusion_matrix():
+    USERS = get_df_from_db("user/users.db")
 
-# validate_two_factor_login("armaan", attempted_face)
+    # dispaly USERS.head() as a pretty table
+
+    # Assume 'all_embeddings' is a list of tuples (username, embedding)
+    all_embeddings = [
+        (username, get_embedding_by_username(username))
+        for username in USERS["username"]
+    ]
+
+    # Extract the embeddings and convert them to a 2D NumPy array
+    embeddings = [emb[1] for emb in all_embeddings]
+    embedding_array = np.vstack(embeddings)
+
+    # Calculate cosine similarity
+    similarity_matrix = cosine_similarity(embedding_array)
+
+    # Apply Multidimensional Scaling (MDS)
+    mds = MDS(n_components=2, dissimilarity="precomputed", random_state=42)
+    mds_result = mds.fit_transform(
+        1 - similarity_matrix
+    )  # Convert similarity to dissimilarity
+
+    # Plot the results
+    plt.figure(figsize=(10, 8))
+    for i, (username, _) in enumerate(all_embeddings):
+        plt.scatter(mds_result[i, 0], mds_result[i, 1])
+        plt.text(mds_result[i, 0], mds_result[i, 1], username)
+
+    plt.xlabel("MDS Dimension 1")
+    plt.ylabel("MDS Dimension 2")
+    plt.title("User Look-Alike Visualization")
+    plt.show()
+
+
+plot_confusion_matrix()
