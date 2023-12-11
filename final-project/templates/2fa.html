@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Capture Image</title>
+    <title>2FA Verification</title>
     <style>
         body {
             text-align: center;
@@ -16,7 +16,6 @@
             border-radius: 15px;
             box-shadow: 0 9px #999;
             background-color: #fff;
-            /* To match the border color */
         }
 
         video {
@@ -35,12 +34,6 @@
         }
 
         #caption {
-            margin-top: 10px;
-            font-size: 24px;
-            color: #4CAF50;
-        }
-
-        #red {
             margin-top: 10px;
             font-size: 24px;
             color: #4CAF50;
@@ -73,62 +66,51 @@
         }
     </style>
     <script>
-        let captureCount = 0;
-
         function startCamera() {
             const video = document.getElementById('video');
-            const captureButton = document.getElementById('captureButton');
+            const verifyButton = document.getElementById('verifyButton');
 
             navigator.mediaDevices.getUserMedia({ video: true, audio: false })
                 .then(stream => {
                     video.srcObject = stream;
-                    captureButton.disabled = false;
+                    verifyButton.disabled = false;
                 })
                 .catch(error => {
                     console.error(error);
-                    captureButton.disabled = true;
+                    verifyButton.disabled = true;
                 });
         }
 
-        function captureImage() {
-            if (captureCount >= 3) {
-                return;
-            }
-
+        function captureAndSubmit() {
+            showFlash('Verifying...');
             let video = document.getElementById('video');
             let canvas = document.getElementById('canvas');
             let context = canvas.getContext('2d');
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            sendImage(captureCount + 1); // Send current image number for capturing
+            submitImage();
         }
 
-        function sendImage(imageNumber) {
+        function submitImage() {
             let canvas = document.getElementById('canvas');
             canvas.toBlob(blob => {
                 let formData = new FormData();
                 formData.append('image', blob);
-                formData.append('image_num', imageNumber);
 
-                fetch('/capture', {
+                fetch('/2fa', {
                     method: 'POST',
                     body: formData
                 })
                     .then(response => response.json())
                     .then(data => {
-                        if (data.status === "success") {
-                            captureCount++;
-                            if (captureCount < 3) {
-                                showFlash(`Captured image ${captureCount}. Ready for next.`);
-                            } else {
-                                showFinalMessage();
-                            }
+                        if (data.status === 'success') {
+                            window.location.href = '/dashboard';
                         } else {
-                            showFlash("Error processing image.");
+                            showFlash('Verification Failed');
                         }
                     })
                     .catch(error => {
                         console.error(error);
-                        showFlash('Error occurred during capturing.');
+                        showFlash('Error occurred during verification');
                     });
             }, 'image/jpeg');
         }
@@ -144,14 +126,6 @@
             }, 500);
         }
 
-        function showFinalMessage() {
-            let caption = document.getElementById('caption');
-            // Use the passed username hereÍ
-            caption.innerText = `Thank you, ${'{{ username }}'}. We saved your data. Your face will be safe with us.`;
-            // Hide the capture button
-            document.getElementById('captureButton').style.display = 'none';
-        }
-
         window.onload = startCamera;
     </script>
 </head>
@@ -163,7 +137,7 @@
     <div id="caption"></div>
     <div id="flash"></div>
     <canvas id="canvas" width="640" height="480" style="display: none;"></canvas>
-    <button id="captureButton" onclick="captureImage()" disabled class="button">Capture</button>
+    <button id="verifyButton" onclick="captureAndSubmit()" disabled class="button">Verify</button>
 </body>
 
 </html>

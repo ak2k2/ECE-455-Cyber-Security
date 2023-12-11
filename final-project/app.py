@@ -17,6 +17,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from embedding import get_embedding_from_face
 from helpers import decrypt_message, encrypt_message, get_config
+from view_schema import validate_two_factor_login
 
 CONFIG = get_config()
 FERNET_KEY = CONFIG["encryption"]["key"].encode()
@@ -94,10 +95,9 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 
-# User loader
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 
 # Home route
@@ -139,7 +139,7 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
             login_user(user)
-            return redirect(url_for("dashboard"))
+            return redirect(url_for("capture"))
 
         flash("Invalid username or password.")
 
@@ -157,6 +157,9 @@ def capture():
             image_bytes = image_file.read()
             image = Image.open(io.BytesIO(image_bytes))
 
+            # Assuming you want to capture 3 images before proceeding to 2FA
+            max_images = 3
+
             if image_num == "1":
                 embedding = get_embedding_from_face(image)
                 current_user.encrypt_and_store_images(image_bytes, None, None)
@@ -167,9 +170,41 @@ def capture():
                 current_user.encrypt_and_store_images(None, None, image_bytes)
 
             db.session.commit()
+
+            # Return a success status after processing each image
             return jsonify({"status": "success", "image_num": image_num})
+        else:
+            return jsonify({"status": "error", "message": "No image provided"})
 
     return render_template("capture.html", username=current_user.username)
+
+
+@app.route("/2fa", methods=["GET", "POST"])
+@login_required
+def process_2fa_login():
+    if request.method == "POST":
+        # Receive the image from the form
+        image_file = request.files["image"] if "image" in request.files else None
+
+        if image_file:
+            # Convert the image to PIL format and validate
+            attempted_face = Image.open(io.BytesIO(image_file.read())).convert("RGB")
+            username = (
+                current_user.username
+            )  # Get the current logged-in user's username
+            result = validate_two_factor_login(username, attempted_face)
+
+            if result:
+                return jsonify({"status": "success", "redirect": url_for("dashboard")})
+            else:
+                return jsonify(
+                    {"status": "failure", "message": "2FA Verification Failed"}
+                )
+
+        else:
+            return jsonify({"status": "failure", "message": "No image provided"})
+
+    return render_template("2fa.html")
 
 
 # Protected dashboard route
@@ -192,4 +227,4 @@ with app.app_context():
     db.create_all()
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
