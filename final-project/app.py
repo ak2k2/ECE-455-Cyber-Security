@@ -251,7 +251,7 @@ def stream_frame(image_data):
     frame = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
 
     # Resize the frame for faster processing
-    scale_percent = 50  # percentage of original size
+    scale_percent = 20  # percentage of original size
     width = int(frame.shape[1] * scale_percent / 100)
     height = int(frame.shape[0] * scale_percent / 100)
     dim = (width, height)

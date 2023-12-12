@@ -26,7 +26,7 @@ function startVideo() {
                 return;
             }
             socket.emit('stream_frame', getFrame(video));
-            setTimeout(sendFrame, 100); // Adjust this based on performance
+            setTimeout(sendFrame, 30); // Adjust this based on performance
         }
         sendFrame();
     });
