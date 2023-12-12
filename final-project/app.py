@@ -252,14 +252,14 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Define MTCNN module for face detection
 # Adjust 'image_size' and 'margin' for potentially better performance
-mtcnn = MTCNN(image_size=160, margin=0, device=device)
+mtcnn = MTCNN(image_size=244, margin=0, device=device)
 
 
 def find_closest_embedding(embedding):
     global all_user_embeddings
     max_similarity = -1
     closest_user_idx = -1
-    similarity_threshold = 0.75
+    similarity_threshold = 0.6
 
     # Reshape the input embedding to work with sklearn's cosine_similarity
     embedding_reshaped = embedding.reshape(1, -1)
@@ -279,15 +279,21 @@ def find_closest_embedding(embedding):
         return -1  # Unknown face
 
 
+FRAME_THROTTLE_RATE = 10  # Perform face recognition once every 5 frames
+frame_counter = 0  # Frame counter
+last_recognized_faces = {}  # Store the last recognized faces
+
+
 @socketio.on("stream_frame")
 def stream_frame(image_data):
+    global frame_counter, last_recognized_faces
     # Convert base64 image to numpy array
     img = base64.b64decode(image_data.split(",")[1])
     npimg = np.frombuffer(img, dtype=np.uint8)
     frame = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
 
     # Resize the frame for faster processing
-    scale_percent = 20  # percentage of original size
+    scale_percent = 50  # percentage of original size
     width = int(frame.shape[1] * scale_percent / 100)
     height = int(frame.shape[0] * scale_percent / 100)
     dim = (width, height)
@@ -303,24 +309,39 @@ def stream_frame(image_data):
     transparent_canvas = Image.new("RGBA", pil_img.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(transparent_canvas)
 
-    # New code for face recognition
+    # Always draw bounding boxes
     if boxes is not None:
         for box in boxes:
-            face = pil_img.crop((int(box[0]), int(box[1]), int(box[2]), int(box[3])))
-            embedding = get_embedding_from_face(face)
-            if embedding is not None:
-                user_idx = find_closest_embedding(embedding)
-                if user_idx != -1:
-                    user_name = all_user_list[user_idx]
-                    # Draw bounding box and user name
-                    draw.rectangle(
-                        [int(box[0]), int(box[1]), int(box[2]), int(box[3])],
-                        outline=(255, 0, 0),
-                        width=2,
-                    )
-                    draw.text(
-                        (int(box[0]), int(box[1])), user_name, fill=(255, 255, 255)
-                    )
+            draw.rectangle(
+                [int(box[0]), int(box[1]), int(box[2]), int(box[3])],
+                outline=(255, 0, 0),
+                width=2,
+            )
+
+    # Perform face recognition at a throttled rate
+    frame_counter += 1
+    if frame_counter >= FRAME_THROTTLE_RATE:
+        frame_counter = 0  # Reset the counter
+        last_recognized_faces.clear()
+
+        if boxes is not None:
+            for box in boxes:
+                face = pil_img.crop(
+                    (int(box[0]), int(box[1]), int(box[2]), int(box[3]))
+                )
+                embedding = get_embedding_from_face(pil_img)
+                if embedding is not None:
+                    user_idx = find_closest_embedding(embedding)
+                    if user_idx != -1:
+                        user_name = all_user_list[user_idx]
+                    else:
+                        user_name = "Unknown Face"
+
+                    last_recognized_faces[tuple(box)] = user_name
+
+    # Draw the names of the recognized or last known faces
+    for box, user_name in last_recognized_faces.items():
+        draw.text((int(box[0]), int(box[1])), user_name, fill=(255, 255, 255))
 
     # Convert transparent canvas with bounding boxes to numpy array
     transparent_np = np.array(transparent_canvas)
