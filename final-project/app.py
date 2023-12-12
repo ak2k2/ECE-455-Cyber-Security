@@ -147,7 +147,7 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
             login_user(user)
-            return redirect(url_for("capture"))
+            return redirect(url_for("dashboard"))
 
         flash("Invalid username or password.")
 
@@ -181,7 +181,7 @@ def capture():
 
             # Redirect to 2FA page after capturing the last image
             if int(image_num) == max_images:
-                return redirect(url_for("process_2fa_login"))
+                return redirect(url_for("dashboard"))
             else:
                 return jsonify({"status": "success", "image_num": image_num})
 
@@ -220,7 +220,7 @@ def process_2fa_login():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    return f"Welcome to your dashboard, {current_user.username}!"
+    return render_template("dashboard.html", current_user=current_user)
 
 
 # Logout route
@@ -280,7 +280,7 @@ def find_closest_embedding(embedding):
         return -1  # Unknown face
 
 
-FRAME_THROTTLE_RATE = 7  # Perform face recognition once every 5 frames
+FRAME_THROTTLE_RATE = 10  # Perform face recognition once every 5 frames
 frame_counter = 0  # Frame counter
 last_recognized_faces = {}  # Store the last recognized faces
 
@@ -296,7 +296,7 @@ def stream_frame(image_data):
     frame = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
 
     # Resize the frame for faster processing
-    scale_percent = 50  # percentage of original size
+    scale_percent = 20  # percentage of original size
     width = int(frame.shape[1] * scale_percent / 100)
     height = int(frame.shape[0] * scale_percent / 100)
     dim = (width, height)
@@ -318,7 +318,7 @@ def stream_frame(image_data):
             draw.rectangle(
                 [int(box[0]), int(box[1]), int(box[2]), int(box[3])],
                 outline=(255, 0, 0),
-                width=2,
+                width=1,
             )
 
     # Perform face recognition at a throttled rate
@@ -331,10 +331,7 @@ def stream_frame(image_data):
 
         if boxes is not None:
             for box in boxes:
-                face = pil_img.crop(
-                    (int(box[0]), int(box[1]), int(box[2]), int(box[3]))
-                )
-                embedding = get_embedding_from_face(face)
+                embedding = get_embedding_from_face(pil_img)
                 if embedding is not None:
                     user_idx = find_closest_embedding(embedding)
                     user_name = all_user_list[user_idx] if user_idx != -1 else ""

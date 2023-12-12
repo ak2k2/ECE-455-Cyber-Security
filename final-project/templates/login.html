@@ -4,9 +4,62 @@
 <head>
     <title>Login</title>
     <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+
+        form {
+            display: inline-block;
+            margin-top: 50px;
+        }
+
+        input[type=text],
+        input[type=password] {
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        input[type=submit] {
+            background-color: #4CAF50;
+            color: white;
+            padding: 14px 20px;
+            margin: 8px 0;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            box-shadow: 0 9px #999;
+        }
+
+        input[type=submit]:hover {
+            background-color: #45a049;
+        }
+
+        .register-link {
+            margin-top: 20px;
+            display: block;
+            color: #4CAF50;
+            text-decoration: none;
+        }
+
+        .register-link:hover {
+            color: #45a049;
+        }
+
         ul {
             color: red;
             list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -23,10 +76,19 @@
     {% endwith %}
 
     <form method="post" action="/login">
-        Username: <input type="text" name="username"><br>
-        Password: <input type="password" name="password"><br>
-        <input type="submit" value="Login">
+        <div>
+            <input type="text" name="username" placeholder="Username"><br>
+        </div>
+        <div>
+            <input type="password" name="password" placeholder="Password"><br>
+        </div>
+        <div>
+            <input type="submit" value="Login">
+        </div>
     </form>
+
+    <!-- Link to the registration page -->
+    <a href="{{ url_for('register') }}" class="register-link">Don't have an account? Register here</a>
 </body>
 
 </html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Dashboard</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            outline: none;
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 9px #999;
+            width: 220px;
+        }
+
+        .button:hover {
+            box-shadow: 0 5px #666;
+        }
+
+        .button-logout {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .button-upload {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .button-verify {
+            background-color: #2196F3;
+            color: white;
+        }
+
+        .button-live {
+            background-color: #FF9800;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Hi {{ current_user.username }}! This is a Safe-Space For Your Face. </h1>
+
+    <p>Upload images of your face and enable face recognition playground</p>
+    <!-- Upload Face Button -->
+    <a href="{{ url_for('capture') }}" class="button button-upload">Upload Face</a>
+
+    <p>Test 2FA on a new face or image</p>
+    <!-- Verify Face Button -->
+    <a href="{{ url_for('process_2fa_login') }}" class="button button-verify">Verify Face</a>
+
+    <p>Live face recognition</p>
+    <!-- Live Detection Button -->
+    <a href="{{ url_for('live') }}" class="button button-live">Live Detection</a>
+
+    <p>Logout</p>
+    <!-- Logout Button -->
+    <a href="{{ url_for('logout') }}" class="button button-logout">Logout</a>
+</body>
+
+</html>

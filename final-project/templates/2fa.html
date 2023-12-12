@@ -103,7 +103,7 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.status === 'success') {
-                            window.location.href = '/dashboard';
+                            showSuccessMessage(data.username);
                         } else {
                             showFlash('Verification Failed');
                         }
@@ -126,6 +126,15 @@
             }, 500);
         }
 
+        function showSuccessMessage(username) {
+            let caption = document.getElementById('caption');
+            caption.innerText = `Success! Your face matches our records for ${username}. Redirecting to dashboard...`;
+
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 3000);
+        }
+
         window.onload = startCamera;
     </script>
 </head>
@@ -134,10 +143,11 @@
     <div id="videoContainer">
         <video id="video" width="640" height="480" autoplay></video>
     </div>
-    <div id="caption"></div>
+    <div id="caption">We need to verify your face. Please position your face in frame, look directly into the camera,
+        and press "CAPTURE"!</div>
     <div id="flash"></div>
     <canvas id="canvas" width="640" height="480" style="display: none;"></canvas>
-    <button id="verifyButton" onclick="captureAndSubmit()" disabled class="button">Verify</button>
+    <button id="verifyButton" onclick="captureAndSubmit()" disabled class="button">Capture</button>
 </body>
 
 </html>

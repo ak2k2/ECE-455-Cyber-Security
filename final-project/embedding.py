@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 import torch
 from facenet_pytorch import MTCNN, InceptionResnetV1
+from matplotlib import pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity
 
 # If a GPU is available, use it (highly recommended for performance)
