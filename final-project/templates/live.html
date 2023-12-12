@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Live Stream</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <style>
+        #videoCanvasOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #videoContainer {
+            position: relative;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Live Webcam Stream</h1>
+    <div id="videoContainer">
+        <video id="video" autoplay></video>
+        <canvas id="videoCanvasOverlay"></canvas>
+    </div>
+    <script>
+        window.onload = function () {
+            startVideo();
+        };
+    </script>
+</body>
+
+</html>

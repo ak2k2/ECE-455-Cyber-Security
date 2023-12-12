@@ -102,8 +102,6 @@ def validate_two_factor_login(username: str, test_image):
 def plot_confusion_matrix():
     USERS = get_df_from_db("user/users.db")
 
-    # dispaly USERS.head() as a pretty table
-
     # Assume 'all_embeddings' is a list of tuples (username, embedding)
     all_embeddings = [
         (username, get_embedding_by_username(username))

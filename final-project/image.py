@@ -5,14 +5,18 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import torch
 import yaml
 from mtcnn import MTCNN
 from PIL import Image
 
 from helpers import decrypt_message
 
-# Initialize MTCNN
-detector = MTCNN()
+# If a GPU is available, use it (highly recommended for performance)
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+# Define MTCNN module for face detection
+detector = MTCNN(device=device)
 
 
 def align_and_crop_face(image, face_height_multiplier=2.0):

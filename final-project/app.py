@@ -1,7 +1,12 @@
+import base64
 import io
 import os
 import pickle
 
+import cv2
+import numpy as np
+import torch
+from facenet_pytorch import MTCNN
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import (
     LoginManager,
@@ -11,8 +16,9 @@ from flask_login import (
     login_user,
     logout_user,
 )
+from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
-from PIL import Image
+from PIL import Image, ImageDraw
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from embedding import get_embedding_from_face
@@ -25,6 +31,7 @@ FERNET_KEY = CONFIG["encryption"]["key"].encode()
 
 # Initialize Flask and SQLAlchemy
 app = Flask(__name__)
+socketio = SocketIO(app)
 basedir = os.path.abspath(os.path.dirname(__file__))
 db_dir = os.path.join(basedir, "user")
 db_uri = "sqlite:///" + os.path.join(db_dir, "users.db")
@@ -223,9 +230,65 @@ def logout():
     return redirect(url_for("index"))
 
 
-# Create the SQLite database
-with app.app_context():
-    db.create_all()
+@app.route("/live")
+def live():
+    return render_template("live.html")
+
+
+# If a GPU is available, use it (highly recommended for performance)
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+# Define MTCNN module for face detection
+# Adjust 'image_size' and 'margin' for potentially better performance
+mtcnn = MTCNN(image_size=160, margin=0, device=device)
+
+
+@socketio.on("stream_frame")
+def stream_frame(image_data):
+    # Convert base64 image to numpy array
+    img = base64.b64decode(image_data.split(",")[1])
+    npimg = np.frombuffer(img, dtype=np.uint8)
+    frame = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
+
+    # Resize the frame for faster processing
+    scale_percent = 50  # percentage of original size
+    width = int(frame.shape[1] * scale_percent / 100)
+    height = int(frame.shape[0] * scale_percent / 100)
+    dim = (width, height)
+    resized = cv2.resize(frame, dim, interpolation=cv2.INTER_AREA)
+
+    # Convert to PIL Image for MTCNN
+    pil_img = Image.fromarray(cv2.cvtColor(resized, cv2.COLOR_BGR2RGB))
+
+    # Detect faces
+    boxes, _ = mtcnn.detect(pil_img)
+
+    # Create a transparent canvas
+    transparent_canvas = Image.new("RGBA", pil_img.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(transparent_canvas)
+
+    if boxes is not None:
+        for box in boxes:
+            # Draw bounding box on the transparent canvas
+            draw.rectangle(
+                [int(box[0]), int(box[1]), int(box[2]), int(box[3])],
+                outline="blue",
+                width=2,
+            )
+
+    # Convert transparent canvas with bounding boxes to numpy array
+    transparent_np = np.array(transparent_canvas)
+
+    # Resize back to original frame size
+    transparent_np = cv2.resize(
+        transparent_np, (frame.shape[1], frame.shape[0]), interpolation=cv2.INTER_AREA
+    )
+
+    # Convert frame back to base64 to send to the frontend
+    _, buffer = cv2.imencode(".png", transparent_np)
+    encoded_frame = base64.b64encode(buffer).decode("utf-8")
+    socketio.emit("processed_frame", encoded_frame)
+
 
 if __name__ == "__main__":
-    app.run()
+    socketio.run(app)

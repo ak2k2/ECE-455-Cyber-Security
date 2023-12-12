@@ -8,7 +8,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Define MTCNN module for face detection
-mtcnn = MTCNN(image_size=160, margin=0, min_face_size=20, device=device)
+mtcnn = MTCNN(image_size=224, margin=0, min_face_size=20, device=device)
 
 
 # Define Inception Resnet V1 module for face embeddings extraction
@@ -27,7 +27,7 @@ def get_embedding_from_face(image):
         return embedding.detach().cpu().numpy()
 
 
-def verify_face(new_embedding, stored_embeddings, threshold=0.6):
+def verify_face(new_embedding, stored_embeddings, threshold=0.8):
     # Compute cosine similarity between the new embedding and each stored embedding
     similarities = cosine_similarity(new_embedding, stored_embeddings)
 
