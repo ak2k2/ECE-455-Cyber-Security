@@ -273,7 +273,7 @@ def stream_frame(image_data):
             draw.rectangle(
                 [int(box[0]), int(box[1]), int(box[2]), int(box[3])],
                 outline="blue",
-                width=2,
+                width=0.8,
             )
 
     # Convert transparent canvas with bounding boxes to numpy array
