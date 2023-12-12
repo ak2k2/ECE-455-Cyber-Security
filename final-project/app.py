@@ -2,6 +2,7 @@ import base64
 import io
 import os
 import pickle
+import ssl
 
 import cv2
 import numpy as np
@@ -361,4 +362,13 @@ def stream_frame(image_data):
 
 
 if __name__ == "__main__":
-    socketio.run(app)
+    import platform
+
+    system = platform.system()
+
+    if system == "Darwin":
+        socketio.run(app, port=5000)
+    else:
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.load_cert_chain("cert.pem", "key.pem")
+        socketio.run(app, host="0.0.0.0", port=5000, ssl_context=context)
