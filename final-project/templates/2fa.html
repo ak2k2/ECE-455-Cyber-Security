@@ -34,7 +34,7 @@
         }
 
         #caption {
-            margin-top: 10px;
+            margin-top: 0;
             font-size: 24px;
             color: #4CAF50;
         }
@@ -130,6 +130,10 @@
             let caption = document.getElementById('caption');
             caption.innerText = `Success! Your face matches our records for ${username}. Redirecting to dashboard...`;
 
+            // Hide the capture button
+            let verifyButton = document.getElementById('verifyButton');
+            verifyButton.style.display = 'none';
+
             setTimeout(() => {
                 window.location.href = '/dashboard';
             }, 3000);
@@ -140,11 +144,10 @@
 </head>
 
 <body>
+    <div id="caption">We need to verify your face...</div>
     <div id="videoContainer">
         <video id="video" width="640" height="480" autoplay></video>
     </div>
-    <div id="caption">We need to verify your face. Please position your face in frame, look directly into the camera,
-        and press "CAPTURE"!</div>
     <div id="flash"></div>
     <canvas id="canvas" width="640" height="480" style="display: none;"></canvas>
     <button id="verifyButton" onclick="captureAndSubmit()" disabled class="button">Capture</button>
