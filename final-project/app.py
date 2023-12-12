@@ -244,7 +244,8 @@ def live():
     for user in all_users:
         all_user_list.append(user.username)
         all_user_embeddings.append(user.get_decrypted_embedding())
-    return render_template("live.html")
+    usernames = ", ".join(all_user_list)
+    return render_template("live.html", usernames=usernames)
 
 
 # If a GPU is available, use it (highly recommended for performance)
@@ -287,6 +288,8 @@ last_recognized_faces = {}  # Store the last recognized faces
 @socketio.on("stream_frame")
 def stream_frame(image_data):
     global frame_counter, last_recognized_faces
+
+    socketio.emit("update_user_list", all_user_list)  # Update user list to the stream
     # Convert base64 image to numpy array
     img = base64.b64decode(image_data.split(",")[1])
     npimg = np.frombuffer(img, dtype=np.uint8)
