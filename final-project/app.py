@@ -127,6 +127,11 @@ def register():
             flash("Username already exists.")
             return redirect(url_for("register"))
 
+        password_too_short = len(password) < 3
+        if password_too_short:
+            flash("Password too short.")
+            return redirect(url_for("register"))
+
         new_user = User(username=username)
         new_user.set_password(password)
         db.session.add(new_user)
