@@ -10,6 +10,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # Define MTCNN module for face detection
 mtcnn = MTCNN(image_size=160, margin=0, min_face_size=20, device=device)
 
+
 # Define Inception Resnet V1 module for face embeddings extraction
 resnet = InceptionResnetV1(pretrained="vggface2").eval().to(device)
 
