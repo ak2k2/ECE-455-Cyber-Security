@@ -259,7 +259,7 @@ def find_closest_embedding(embedding):
     global all_user_embeddings
     max_similarity = -1
     closest_user_idx = -1
-    similarity_threshold = 0.6
+    similarity_threshold = 0.5
 
     # Reshape the input embedding to work with sklearn's cosine_similarity
     embedding_reshaped = embedding.reshape(1, -1)
@@ -279,7 +279,7 @@ def find_closest_embedding(embedding):
         return -1  # Unknown face
 
 
-FRAME_THROTTLE_RATE = 10  # Perform face recognition once every 5 frames
+FRAME_THROTTLE_RATE = 7  # Perform face recognition once every 5 frames
 frame_counter = 0  # Frame counter
 last_recognized_faces = {}  # Store the last recognized faces
 
@@ -322,22 +322,23 @@ def stream_frame(image_data):
     frame_counter += 1
     if frame_counter >= FRAME_THROTTLE_RATE:
         frame_counter = 0  # Reset the counter
-        last_recognized_faces.clear()
+
+        # Clear previous recognitions only when new recognition is performed
+        recognized_faces_this_round = {}
 
         if boxes is not None:
             for box in boxes:
                 face = pil_img.crop(
                     (int(box[0]), int(box[1]), int(box[2]), int(box[3]))
                 )
-                embedding = get_embedding_from_face(pil_img)
+                embedding = get_embedding_from_face(face)
                 if embedding is not None:
                     user_idx = find_closest_embedding(embedding)
-                    if user_idx != -1:
-                        user_name = all_user_list[user_idx]
-                    else:
-                        user_name = "Unknown Face"
+                    user_name = all_user_list[user_idx] if user_idx != -1 else ""
+                    recognized_faces_this_round[tuple(box)] = user_name
 
-                    last_recognized_faces[tuple(box)] = user_name
+        # Update last recognized faces
+        last_recognized_faces = recognized_faces_this_round
 
     # Draw the names of the recognized or last known faces
     for box, user_name in last_recognized_faces.items():
