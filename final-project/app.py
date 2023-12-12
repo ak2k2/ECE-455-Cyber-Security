@@ -19,6 +19,7 @@ from flask_login import (
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
 from PIL import Image, ImageDraw
+from sklearn.metrics.pairwise import cosine_similarity
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from embedding import get_embedding_from_face
@@ -230,8 +231,19 @@ def logout():
     return redirect(url_for("index"))
 
 
+all_user_list = []
+all_user_embeddings = []
+
+
 @app.route("/live")
 def live():
+    global all_user_list, all_user_embeddings
+    all_user_list.clear()
+    all_user_embeddings.clear()
+    all_users = User.query.all()
+    for user in all_users:
+        all_user_list.append(user.username)
+        all_user_embeddings.append(user.get_decrypted_embedding())
     return render_template("live.html")
 
 
@@ -241,6 +253,30 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # Define MTCNN module for face detection
 # Adjust 'image_size' and 'margin' for potentially better performance
 mtcnn = MTCNN(image_size=160, margin=0, device=device)
+
+
+def find_closest_embedding(embedding):
+    global all_user_embeddings
+    max_similarity = -1
+    closest_user_idx = -1
+    similarity_threshold = 0.75
+
+    # Reshape the input embedding to work with sklearn's cosine_similarity
+    embedding_reshaped = embedding.reshape(1, -1)
+
+    for idx, user_embedding in enumerate(all_user_embeddings):
+        user_embedding_reshaped = np.array(user_embedding).reshape(1, -1)
+        similarity = cosine_similarity(embedding_reshaped, user_embedding_reshaped)[0][
+            0
+        ]
+        if similarity > max_similarity:
+            max_similarity = similarity
+            closest_user_idx = idx
+
+    if max_similarity > similarity_threshold:
+        return closest_user_idx
+    else:
+        return -1  # Unknown face
 
 
 @socketio.on("stream_frame")
@@ -267,14 +303,24 @@ def stream_frame(image_data):
     transparent_canvas = Image.new("RGBA", pil_img.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(transparent_canvas)
 
+    # New code for face recognition
     if boxes is not None:
         for box in boxes:
-            # Draw bounding box on the transparent canvas
-            draw.rectangle(
-                [int(box[0]), int(box[1]), int(box[2]), int(box[3])],
-                outline="blue",
-                width=2,
-            )
+            face = pil_img.crop((int(box[0]), int(box[1]), int(box[2]), int(box[3])))
+            embedding = get_embedding_from_face(face)
+            if embedding is not None:
+                user_idx = find_closest_embedding(embedding)
+                if user_idx != -1:
+                    user_name = all_user_list[user_idx]
+                    # Draw bounding box and user name
+                    draw.rectangle(
+                        [int(box[0]), int(box[1]), int(box[2]), int(box[3])],
+                        outline=(255, 0, 0),
+                        width=2,
+                    )
+                    draw.text(
+                        (int(box[0]), int(box[1])), user_name, fill=(255, 255, 255)
+                    )
 
     # Convert transparent canvas with bounding boxes to numpy array
     transparent_np = np.array(transparent_canvas)
