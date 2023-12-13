@@ -6,4 +6,5 @@
 1. create and activate venv
 2. '$ pip install -r requirements.txt'
 3. '$ python3 app.py'
-4. 'Follow intructions to generate self ssl certifiacte to run in PROD'
+4. Follow intructions to generate self ssl certifiacte to run in https mode. app.py:386 for the mode selection.
+5. Naviagate to Flask server.
