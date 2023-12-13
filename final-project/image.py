@@ -1,12 +1,6 @@
-import io
-import sqlite3
-
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import torch
-import yaml
 from mtcnn import MTCNN
 from PIL import Image
 
