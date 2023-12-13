@@ -2,22 +2,17 @@ import cv2
 import numpy as np
 import torch
 from mtcnn import MTCNN
-from PIL import Image
 
 from helpers import decrypt_message
 
-# If a GPU is available, use it (highly recommended for performance)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-# Define MTCNN module for face detection
 detector = MTCNN(device=device)
 
 
 def align_and_crop_face(image, face_height_multiplier=2.0):
-    # Convert the PIL Image to a NumPy array
+    # PIL Image to a NumPy array
     image = np.array(image)
 
-    # Detect faces in the image
     faces = detector.detect_faces(image)
 
     for face in faces:

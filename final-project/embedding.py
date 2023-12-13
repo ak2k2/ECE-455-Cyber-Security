@@ -5,25 +5,22 @@ from facenet_pytorch import MTCNN, InceptionResnetV1
 from matplotlib import pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity
 
-# If a GPU is available, use it (highly recommended for performance)
+# facenet MTCCN
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-# Define MTCNN module for face detection
 mtcnn = MTCNN(image_size=224, margin=0, min_face_size=20, device=device)
 
-
-# Define Inception Resnet V1 module for face embeddings extraction
+# Inception Resnet V1 module for face embeddings extraction
 resnet = InceptionResnetV1(pretrained="vggface2").eval().to(device)
 
 
 def get_embedding_from_face(image):
-    # Detect face and return cropped face
     aligned_face = mtcnn(image)
 
-    # Calculate embedding (unsqueeze to add batch dimension)
     if aligned_face is not None:
         aligned_face = aligned_face.to(device)
-        embedding = resnet(aligned_face.unsqueeze(0))
+        embedding = resnet(
+            aligned_face.unsqueeze(0)
+        )  # Unsqueeze to add batch dimension
 
         return embedding.detach().cpu().numpy()
 

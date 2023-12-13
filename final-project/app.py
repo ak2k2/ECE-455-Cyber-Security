@@ -42,6 +42,10 @@ app.config["SECRET_KEY"] = "your_secret_key"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
+# Load torch device for MTCNN
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+mtcnn = MTCNN(image_size=244, margin=0, device=device)
+
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -256,12 +260,19 @@ def live():
     return render_template("live.html", usernames=usernames)
 
 
-# If a GPU is available, use it (highly recommended for performance)
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-# Define MTCNN module for face detection
-# Adjust 'image_size' and 'margin' for potentially better performance
-mtcnn = MTCNN(image_size=244, margin=0, device=device)
+@app.route("/color")
+def color_stream():
+    global all_user_list, all_user_embeddings
+    all_user_list.clear()
+    all_user_embeddings.clear()
+    all_users = User.query.filter(
+        User.embedding.isnot(None)
+    ).all()  # Filter users with non-empty embeddings
+    for user in all_users:
+        all_user_list.append(user.username)
+        all_user_embeddings.append(user.get_decrypted_embedding())
+    usernames = ", ".join(all_user_list)
+    return render_template("color_stream.html", usernames=usernames)
 
 
 def find_closest_embedding(embedding):
@@ -297,7 +308,8 @@ last_recognized_faces = {}  # Store the last recognized faces
 def stream_frame(image_data):
     global frame_counter, last_recognized_faces
 
-    socketio.emit("update_user_list", all_user_list)  # Update user list to the stream
+    socketio.emit("update_user_list", all_user_list)
+
     # Convert base64 image to numpy array
     img = base64.b64decode(image_data.split(",")[1])
     npimg = np.frombuffer(img, dtype=np.uint8)
@@ -371,9 +383,9 @@ if __name__ == "__main__":
 
     system = platform.system()
 
-    if system == "Darwin":
+    if system == "Darwin":  # my version of test of dev env
         socketio.run(app, port=5000)
-    else:
+    else:  # production env
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         context.load_cert_chain("cert.pem", "key.pem")
         socketio.run(app, host="0.0.0.0", port=5000, ssl_context=context)

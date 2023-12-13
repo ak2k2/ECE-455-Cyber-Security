@@ -32,6 +32,3 @@ def generate_key():
     Generates a Fernet key.
     """
     return Fernet.generate_key()
-
-
-print(generate_key())
